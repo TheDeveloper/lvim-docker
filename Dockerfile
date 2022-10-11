@@ -28,6 +28,10 @@ RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 # installing its plugins, so we have to resort to a sleep before quit here
 RUN . ~/.bashrc && lvim --headless -c 'TSInstall bash javascript json python typescript tsx css rust java yaml' -c "sleep 10 | quit"
 
+RUN apt install -y nodejs npm python3-venv
+
+RUN /root/.local/bin/lvim --headless -c 'LspInstall bashls jedi_language_server eslint yamlls jsonls' -c "sleep 10 | quit"
+
 WORKDIR /root/workspace
 
 ENTRYPOINT [ "/root/.local/bin/lvim" ]
