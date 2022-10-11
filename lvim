@@ -1,6 +1,6 @@
 #!/bin/bash
 
-nvim () {
+lvim () {
   _path="$1"
 
   if [[ -z "$_path" || "$_path" == "." || "$_path" == "./" ]]
