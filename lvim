@@ -1,12 +1,14 @@
 #!/bin/bash
 
 lvim () {
-  _path="$1"
-
-  if [[ -z "$_path" || "$_path" == "." || "$_path" == "./" ]]
-  then
-    _path="$(pwd)"
+  if [[ "$1" = /* ]]; then
+    file_name="$(basename ${1})"
+    dir_name="$(dirname ${1})"
+  else
+    file_name="$1"
+    dir_name="$(pwd)"
   fi
-
-  docker run --rm -v "$_path":/root/workspace -it thedeveloper/lvim:latest lvim
+  
+  # CMD="/bin/bash -lc 'cd /root/workspace && lvim $file_name'"
+  docker run --rm -v "$dir_name":/root/workspace -it thedeveloper/lvim:latest "$file_name"
 }

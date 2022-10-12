@@ -1,26 +1,45 @@
-FROM debian:bullseye-slim
+FROM debian:bullseye-slim as builder
 
 WORKDIR /root
 
 RUN apt update
-RUN apt install -y curl git python3 python3-pip unzip
+
+# node 16 repo
+RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
+
+RUN apt install -y curl git python3 python3-pip unzip python3-venv nodejs npm
 
 # nvim
 RUN \
-	curl -o ./nvim-linux64.deb -L https://github.com/neovim/neovim/releases/download/stable/nvim-linux64.deb && \
-	apt install ./nvim-linux64.deb
+curl -o ./nvim-linux64.deb -L https://github.com/neovim/neovim/releases/download/stable/nvim-linux64.deb && \
+apt install ./nvim-linux64.deb
+
+RUN mkdir lua-language-server && \
+curl -L https://github.com/sumneko/lua-language-server/releases/download/3.5.6/lua-language-server-3.5.6-linux-x64.tar.gz -o ./lua-language-server/lua-language-server-3.5.6-linux-x64.tar.gz && \
+cd lua-language-server && \
+tar -xzf lua-language-server-3.5.6-linux-x64.tar.gz && \
+rm lua-language-server-3.5.6-linux-x64.tar.gz
+
+COPY ./lua-language-server /usr/local/bin/lua-language-server
 
 # rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && . "$HOME/.cargo/env"
 
 # nodejs
-# deps: unzip
-RUN curl -fsSL https://fnm.vercel.app/install | bash
-RUN . ~/.bashrc && fnm install 16
+# RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash && \
+# . ~/.bashrc && \
+# nvm i 16 && \
+# nvm alias default 16
+# RUN apt install -y xz-utils
+# RUN curl -L -o ./node.tar.xz https://nodejs.org/dist/v16.17.1/node-v16.17.1-linux-x64.tar.xz && \
+# xz -d -v node.tar.xz && \
+# ls -alh node*
+
+RUN npm i -g bash-language-server
 
 # lunarvim
 # deps: git python3 python3-pip
-# source .bashrc for fnm node, cargo
+# source .bashrc for node, cargo
 RUN . ~/.bashrc && curl -s https://raw.githubusercontent.com/lunarvim/lunarvim/master/utils/installer/install.sh | bash -s -- -y
 RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 
@@ -28,10 +47,18 @@ RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 # installing its plugins, so we have to resort to a sleep before quit here
 RUN . ~/.bashrc && lvim --headless -c 'TSInstall bash javascript json python typescript tsx css rust java yaml' -c "sleep 10 | quit"
 
-RUN apt install -y nodejs npm python3-venv
+# deps: nodejs npm python3-venv
+RUN . ~/.bashrc && lvim --headless -c 'LspInstall bashls jedi_language_server eslint yamlls jsonls dockerls' -c "sleep 10 | quit"
 
-RUN /root/.local/bin/lvim --headless -c 'LspInstall bashls jedi_language_server eslint yamlls jsonls' -c "sleep 10 | quit"
+# RUN which nvim
+
+# FROM debian:bullseye-slim
+
+# COPY --from=builder /usr/local /usr/local
+# COPY --from=builder /usr/bin /usr/bin
+# COPY --from=builder /root /root
+# COPY --from=builder /usr/share /usr/share
 
 WORKDIR /root/workspace
 
-ENTRYPOINT [ "/root/.local/bin/lvim" ]
+ENTRYPOINT bash -lc 'cd /root/workspace && lvim'
